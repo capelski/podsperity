@@ -48,7 +48,7 @@ async function buildDialogue(url: string, voiceA: string, voiceB: string): Promi
       {
         role: "system",
         content:
-          "You extract the key content from web page text and write an engaging podcast dialogue. Return strict JSON with shape {\"lines\": []}. Each line should be a string of dialogue, alternating between two speakers. Include inline audio tags like [laughs] or [curious] to make the delivery feel natural.",
+          "You extract the key content from web page text and write an engaging podcast dialogue. Return strict JSON with shape {\"lines\": []}. Each line should be a string of dialogue, alternating between two speakers. Include inline audio tags like [laughs] or [curious] at the beginning of the line to make the delivery feel natural.",
       },
       {
         role: "user",
