@@ -11,19 +11,32 @@ if (!apiKey) {
   process.exit(1);
 }
 
-const SAMPLE_TEXT = "If you can hear this, the audio pipeline works end to end";
+// A short conversation between two people. v3 understands inline audio tags
+// like [laughs] or [curious] to make the delivery feel natural.
+function buildDialogue(voiceA: string, voiceB: string) {
+  return [
+    { voiceId: voiceA, text: "[curious] So, did the audio pipeline actually work?" },
+    { voiceId: voiceB, text: "[confident] It did! If you can hear this, it's running end to end." },
+    { voiceId: voiceA, text: "[laughs] No way. Two voices and everything?" },
+    { voiceId: voiceB, text: "Two voices, one request. That's the v3 dialogue model for you." },
+    { voiceId: voiceA, text: "[impressed] Nice. Sounds like a real podcast already." },
+  ];
+}
 
 async function main(): Promise<void> {
-  // Defaults to "George", a stock ElevenLabs voice available on every account
-  const voiceId = process.env.ELEVENLABS_VOICE_ID ?? "JBFqnCBsd6RMkjVDRZzb";
+  // Two stock ElevenLabs voices available on every account: "George" and "Sarah".
+  const voiceA = process.env.ELEVENLABS_VOICE_ID_1 ?? "JBFqnCBsd6RMkjVDRZzb";
+  const voiceB = process.env.ELEVENLABS_VOICE_ID_2 ?? "EXAVITQu4vr4xnSDxMaL";
   const outputPath = resolve(process.env.OUTPUT_PATH ?? "output/sample.mp3");
-  const modelId = process.env.ELEVENLABS_MODEL_ID ?? "eleven_multilingual_v2";
+  const modelId = process.env.ELEVENLABS_MODEL_ID ?? "eleven_v3";
 
   const client = new ElevenLabsClient({ apiKey });
 
-  console.log(`Synthesizing speech with voice ${voiceId}...`);
-  const audioStream = await client.textToSpeech.convert(voiceId, {
-    text: SAMPLE_TEXT,
+  const inputs = buildDialogue(voiceA, voiceB);
+
+  console.log(`Synthesizing a dialogue with ${modelId} (voices ${voiceA}, ${voiceB})...`);
+  const audioStream = await client.textToDialogue.convert({
+    inputs,
     modelId,
     outputFormat: "mp3_44100_128",
   });
