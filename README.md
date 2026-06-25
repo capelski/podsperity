@@ -21,4 +21,4 @@ Generates a short two-person conversation between two people and writes the audi
 
 - `ELEVENLABS_VOICE_ID_1` / `ELEVENLABS_VOICE_ID_2` — override the two speaker voices (default to the stock "George" and "Sarah" voices).
 - `ELEVENLABS_MODEL_ID` — override the model (defaults to `eleven_v3`).
-- `OUTPUT_PATH` — override the output file path.
+- `OUTPUT_FOLDER` — override the output folder path.

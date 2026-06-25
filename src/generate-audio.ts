@@ -75,18 +75,22 @@ async function buildDialogue(url: string, voiceA: string, voiceB: string): Promi
     }));
 }
 
-async function main(): Promise<void> {
+async function main(sourceUrl: string): Promise<void> {
   // Two stock ElevenLabs voices available on every account: "George" and "Sarah".
   const voiceA = process.env.ELEVENLABS_VOICE_ID_1 ?? "JBFqnCBsd6RMkjVDRZzb";
   const voiceB = process.env.ELEVENLABS_VOICE_ID_2 ?? "EXAVITQu4vr4xnSDxMaL";
-  const outputPath = resolve(process.env.OUTPUT_PATH ?? "output/sample.mp3");
+  const outputFolder = resolve(process.env.OUTPUT_FOLDER ?? "output");
   const modelId = process.env.ELEVENLABS_MODEL_ID ?? "eleven_v3";
-  const sourceUrl = "https://capelski.github.io/blog/blackjack-01-solid-decisions";
 
   const client = new ElevenLabsClient({ apiKey });
+  await mkdir(outputFolder, { recursive: true });
 
   console.log(`Building dialogue from ${sourceUrl} with OpenAI...`);
   const inputs = await buildDialogue(sourceUrl, voiceA, voiceB);
+
+  const scriptPath = resolve(outputFolder, "script.json");
+  await writeFile(scriptPath, JSON.stringify(inputs, null, 2), "utf8");
+  console.log(`Wrote script JSON to ${scriptPath}`);
 
   console.log(`Synthesizing a dialogue with ${modelId} (voices ${voiceA}, ${voiceB})...`);
   const audioStream = await client.textToDialogue.convert({
@@ -102,13 +106,13 @@ async function main(): Promise<void> {
   }
   const audio = Buffer.concat(chunks);
 
-  await mkdir(dirname(outputPath), { recursive: true });
-  await writeFile(outputPath, audio);
+  const audioPath = resolve(outputFolder, "audio.mp3");
+  await writeFile(audioPath, audio);
 
-  console.log(`Wrote ${audio.length} bytes to ${outputPath}`);
+  console.log(`Wrote ${audio.length} bytes to ${audioPath}`);
 }
 
-main().catch((err) => {
+main('https://www.bbc.com/news/live/c621z18wznet').catch((err) => {
   console.error("Failed to generate audio:", err);
   process.exit(1);
 });
