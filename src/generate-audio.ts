@@ -2,6 +2,7 @@ import "dotenv/config";
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { ElevenLabsClient } from "@elevenlabs/elevenlabs-js";
+import OpenAI from "openai";
 
 const apiKey = process.env.ELEVENLABS_API_KEY;
 if (!apiKey) {
@@ -11,16 +12,67 @@ if (!apiKey) {
   process.exit(1);
 }
 
+const openAiApiKey = process.env.OPENAI_API_KEY;
+if (!openAiApiKey) {
+  console.error("Missing OPENAI_API_KEY. Set it in your environment or a .env file.");
+  process.exit(1);
+}
+
+type DialogueInput = { voiceId: string; text: string };
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // A short conversation between two people. v3 understands inline audio tags
 // like [laughs] or [curious] to make the delivery feel natural.
-function buildDialogue(voiceA: string, voiceB: string) {
-  return [
-    { voiceId: voiceA, text: "[curious] So, did the audio pipeline actually work?" },
-    { voiceId: voiceB, text: "[confident] It did! If you can hear this, it's running end to end." },
-    { voiceId: voiceA, text: "[laughs] No way. Two voices and everything?" },
-    { voiceId: voiceB, text: "Two voices, one request. That's the v3 dialogue model for you." },
-    { voiceId: voiceA, text: "[impressed] Nice. Sounds like a real podcast already." },
-  ];
+async function buildDialogue(url: string, voiceA: string, voiceB: string): Promise<DialogueInput[]> {
+  const pageResponse = await fetch(url);
+  if (!pageResponse.ok) {
+    throw new Error(`Failed to fetch ${url}: ${pageResponse.status} ${pageResponse.statusText}`);
+  }
+
+  const pageHtml = await pageResponse.text();
+  const pageText = htmlToText(pageHtml);
+  const openai = new OpenAI({ apiKey: openAiApiKey });
+
+  const completion = await openai.chat.completions.create({
+    model: process.env.OPENAI_MODEL_ID ?? "gpt-4.1-mini",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "system",
+        content:
+          "You extract the key content from web page text and write an engaging podcast dialogue. Return strict JSON with shape {\"lines\": []}. Each line should be a string of dialogue, alternating between two speakers. Include inline audio tags like [laughs] or [curious] to make the delivery feel natural.",
+      },
+      {
+        role: "user",
+        content: `URL: ${url}\n\nExtracted page text:\n${pageText}`,
+      },
+    ],
+  });
+
+  const content = completion.choices[0]?.message?.content;
+  if (!content) {
+    throw new Error("OpenAI returned no content while building dialogue.");
+  }  
+
+  const parsed = JSON.parse(content) as { lines?: unknown };
+  if (!Array.isArray(parsed.lines) || parsed.lines.length === 0) {
+    throw new Error("OpenAI response did not include a valid 'lines' array.");
+  }
+
+  return parsed.lines
+    .filter((line): line is string => typeof line === "string" && line.trim().length > 0)
+    .map((text, index) => ({
+      voiceId: index % 2 === 0 ? voiceA : voiceB,
+      text,
+    }));
 }
 
 async function main(): Promise<void> {
@@ -29,10 +81,12 @@ async function main(): Promise<void> {
   const voiceB = process.env.ELEVENLABS_VOICE_ID_2 ?? "EXAVITQu4vr4xnSDxMaL";
   const outputPath = resolve(process.env.OUTPUT_PATH ?? "output/sample.mp3");
   const modelId = process.env.ELEVENLABS_MODEL_ID ?? "eleven_v3";
+  const sourceUrl = "https://capelski.github.io/blog/blackjack-01-solid-decisions";
 
   const client = new ElevenLabsClient({ apiKey });
 
-  const inputs = buildDialogue(voiceA, voiceB);
+  console.log(`Building dialogue from ${sourceUrl} with OpenAI...`);
+  const inputs = await buildDialogue(sourceUrl, voiceA, voiceB);
 
   console.log(`Synthesizing a dialogue with ${modelId} (voices ${voiceA}, ${voiceB})...`);
   const audioStream = await client.textToDialogue.convert({
