@@ -1,4 +1,15 @@
 node_modules/
 output/
-.env
 .DS_Store
+
+# Firebase
+.firebase/
+*-debug.log
+
+# build output
+web/dist/
+functions/lib/
+
+# secrets / local env
+.env
+**/.env

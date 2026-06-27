@@ -1,0 +1,17 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Generated podcasts are world-readable (the download URL also carries a
+    // token). All writes happen server-side via the Admin SDK, which bypasses
+    // these rules, so clients are never allowed to write.
+    match /podcasts/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
