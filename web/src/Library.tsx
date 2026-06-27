@@ -1,10 +1,29 @@
 import { useCallback, useEffect, useState } from "react";
 import { LIST_PODCASTS_URL } from "./config";
 
-type PodcastSummary = {
+export type PodcastSummary = {
   id: string;
   audioUrl: string;
   createdAt?: string;
+};
+
+// The fetched podcasts + pagination cursor. Lifted into App so it survives
+// switching away from and back to the Library tab. `tokenStack` holds the
+// pageToken used to fetch each page we've visited (the first page uses
+// `undefined`), so we can step forwards with the server's cursor and backwards
+// through history. `loaded` guards the one-time initial fetch.
+export type LibraryState = {
+  podcasts: PodcastSummary[];
+  tokenStack: (string | undefined)[];
+  nextPageToken: string | null;
+  loaded: boolean;
+};
+
+export const INITIAL_LIBRARY_STATE: LibraryState = {
+  podcasts: [],
+  tokenStack: [undefined],
+  nextPageToken: null,
+  loaded: false,
 };
 
 type ListResponse = {
@@ -14,15 +33,13 @@ type ListResponse = {
 
 const PAGE_SIZE = 5;
 
-export default function Library() {
-  // Library list + pagination. `tokenStack` holds the pageToken used to fetch
-  // each page we've visited (the first page uses `undefined`), so we can step
-  // forwards with the cursor from the server and backwards through history.
-  const [podcasts, setPodcasts] = useState<PodcastSummary[]>([]);
-  const [tokenStack, setTokenStack] = useState<(string | undefined)[]>([
-    undefined,
-  ]);
-  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+type Props = {
+  state: LibraryState;
+  setState: React.Dispatch<React.SetStateAction<LibraryState>>;
+};
+
+export default function Library({ state, setState }: Props) {
+  // Transient UI state stays local to the tab; the data lives in App.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,29 +67,39 @@ export default function Library() {
     setError(null);
     try {
       const data = await fetchPage();
-      setPodcasts(data.podcasts);
-      setNextPageToken(data.nextPageToken);
-      setTokenStack([undefined]);
+      setState({
+        podcasts: data.podcasts,
+        nextPageToken: data.nextPageToken,
+        tokenStack: [undefined],
+        loaded: true,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
-  }, [fetchPage]);
+  }, [fetchPage, setState]);
 
+  // Fetch once on first open; later visits reuse the lifted state.
   useEffect(() => {
-    void loadFirstPage();
-  }, [loadFirstPage]);
+    if (!state.loaded) {
+      void loadFirstPage();
+    }
+  }, [state.loaded, loadFirstPage]);
 
   async function goToNextPage() {
-    if (!nextPageToken) return;
+    if (!state.nextPageToken) return;
+    const token = state.nextPageToken;
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchPage(nextPageToken);
-      setPodcasts(data.podcasts);
-      setTokenStack((stack) => [...stack, nextPageToken]);
-      setNextPageToken(data.nextPageToken);
+      const data = await fetchPage(token);
+      setState((prev) => ({
+        ...prev,
+        podcasts: data.podcasts,
+        tokenStack: [...prev.tokenStack, token],
+        nextPageToken: data.nextPageToken,
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -81,16 +108,19 @@ export default function Library() {
   }
 
   async function goToPrevPage() {
-    if (tokenStack.length < 2) return;
-    const prevStack = tokenStack.slice(0, -1);
+    if (state.tokenStack.length < 2) return;
+    const prevStack = state.tokenStack.slice(0, -1);
     const prevToken = prevStack[prevStack.length - 1];
     setLoading(true);
     setError(null);
     try {
       const data = await fetchPage(prevToken);
-      setPodcasts(data.podcasts);
-      setTokenStack(prevStack);
-      setNextPageToken(data.nextPageToken);
+      setState((prev) => ({
+        ...prev,
+        podcasts: data.podcasts,
+        tokenStack: prevStack,
+        nextPageToken: data.nextPageToken,
+      }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -98,6 +128,7 @@ export default function Library() {
     }
   }
 
+  const { podcasts, tokenStack, nextPageToken } = state;
   const pageNumber = tokenStack.length;
 
   return (

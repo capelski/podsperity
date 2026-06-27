@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Generate from "./Generate";
-import Library from "./Library";
+import Library, { INITIAL_LIBRARY_STATE, type LibraryState } from "./Library";
 
 type Tab = "generate" | "library";
 
@@ -11,6 +11,10 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("generate");
+  // The Library's fetched podcasts live here so they persist across tab
+  // switches instead of being re-fetched every time the tab is opened.
+  const [libraryState, setLibraryState] =
+    useState<LibraryState>(INITIAL_LIBRARY_STATE);
 
   return (
     <main
@@ -58,9 +62,11 @@ export default function App() {
         })}
       </nav>
 
-      {/* Mount only the active tab so Library re-fetches each time it opens,
-          surfacing podcasts generated since the last visit. */}
-      {tab === "generate" ? <Generate /> : <Library />}
+      {tab === "generate" ? (
+        <Generate />
+      ) : (
+        <Library state={libraryState} setState={setLibraryState} />
+      )}
     </main>
   );
 }
