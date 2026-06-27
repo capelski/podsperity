@@ -5,6 +5,7 @@ export type PodcastSummary = {
   id: string;
   audioUrl: string;
   title?: string;
+  source?: string;
   createdAt?: string;
 };
 
@@ -178,6 +179,20 @@ export default function Library({ state, setState }: Props) {
                   ? new Date(podcast.createdAt).toLocaleString()
                   : podcast.id}
               </div>
+              {podcast.source && (
+                <div
+                  style={{
+                    fontSize: "0.85rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <a href={podcast.source} target="_blank" rel="noreferrer">
+                    {podcast.source}
+                  </a>
+                </div>
+              )}
               <audio
                 controls
                 src={podcast.audioUrl}

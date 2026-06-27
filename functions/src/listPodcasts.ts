@@ -6,6 +6,7 @@ type PodcastSummary = {
   id: string;
   audioUrl: string;
   title?: string;
+  source?: string;
   createdAt?: string;
 };
 
@@ -49,7 +50,15 @@ async function fetchPodcastPage(
           )}?alt=media&token=${token}`;
           const rawTitle = metadata.metadata?.title;
           const title = typeof rawTitle === "string" ? rawTitle : undefined;
-          return { id, audioUrl, title, createdAt: metadata.timeCreated };
+          const rawSource = metadata.metadata?.source;
+          const source = typeof rawSource === "string" ? rawSource : undefined;
+          return {
+            id,
+            audioUrl,
+            title,
+            source,
+            createdAt: metadata.timeCreated,
+          };
         } catch {
           // Folder without a readable audio.mp3 (e.g. a half-written upload).
           return null;

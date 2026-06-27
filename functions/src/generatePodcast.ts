@@ -86,7 +86,7 @@ async function buildDialogue(
   return { title, lines };
 }
 
-async function generate(url: string): Promise<{ audioUrl: string; title: string; lines: DialogueInput[] }> {
+async function generate(url: string): Promise<{ audioUrl: string; title: string; source: string; lines: DialogueInput[] }> {
   // Two stock ElevenLabs voices available on every account: "George" and "Sarah".
   const voiceA = process.env.ELEVENLABS_VOICE_ID_1 ?? "JBFqnCBsd6RMkjVDRZzb";
   const voiceB = process.env.ELEVENLABS_VOICE_ID_2 ?? "EXAVITQu4vr4xnSDxMaL";
@@ -121,7 +121,7 @@ async function generate(url: string): Promise<{ audioUrl: string; title: string;
   await file.save(audio, {
     metadata: {
       contentType: "audio/mpeg",
-      metadata: { firebaseStorageDownloadTokens: token, title },
+      metadata: { firebaseStorageDownloadTokens: token, title, source: url },
     },
   });
 
@@ -135,7 +135,7 @@ async function generate(url: string): Promise<{ audioUrl: string; title: string;
     objectPath,
   )}?alt=media&token=${token}`;
 
-  return { audioUrl, title, lines: inputs };
+  return { audioUrl, title, source: url, lines: inputs };
 }
 
 export const generatePodcast = onRequest(
