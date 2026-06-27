@@ -3,6 +3,7 @@ import { GENERATE_PODCAST_URL } from "./config";
 
 type GenerateResponse = {
   audioUrl: string;
+  title: string;
   lines: { voiceId: string; text: string }[];
 };
 
@@ -75,7 +76,7 @@ export default function Generate() {
 
       {result && (
         <section style={{ marginTop: "1.5rem" }}>
-          <h2>Your podcast</h2>
+          <h2>{result.title || "Your podcast"}</h2>
           <audio controls src={result.audioUrl} style={{ width: "100%" }} />
           <p>
             <a href={result.audioUrl} download>

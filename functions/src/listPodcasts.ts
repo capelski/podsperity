@@ -2,7 +2,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import { getStorage } from "firebase-admin/storage";
 import { cors } from "./shared";
 
-type PodcastSummary = { id: string; audioUrl: string; createdAt?: string };
+type PodcastSummary = {
+  id: string;
+  audioUrl: string;
+  title?: string;
+  createdAt?: string;
+};
+
 
 // List the podcasts already stored in the bucket, one "page" at a time.
 //
@@ -41,7 +47,9 @@ async function fetchPodcastPage(
           const audioUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(
             audioPath,
           )}?alt=media&token=${token}`;
-          return { id, audioUrl, createdAt: metadata.timeCreated };
+          const rawTitle = metadata.metadata?.title;
+          const title = typeof rawTitle === "string" ? rawTitle : undefined;
+          return { id, audioUrl, title, createdAt: metadata.timeCreated };
         } catch {
           // Folder without a readable audio.mp3 (e.g. a half-written upload).
           return null;

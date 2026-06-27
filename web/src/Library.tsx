@@ -4,6 +4,7 @@ import { LIST_PODCASTS_URL } from "./config";
 export type PodcastSummary = {
   id: string;
   audioUrl: string;
+  title?: string;
   createdAt?: string;
 };
 
@@ -169,6 +170,9 @@ export default function Library({ state, setState }: Props) {
                 borderTop: "1px solid #ddd",
               }}
             >
+              <div style={{ fontWeight: 600 }}>
+                {podcast.title || "Untitled podcast"}
+              </div>
               <div style={{ fontSize: "0.85rem", color: "#555" }}>
                 {podcast.createdAt
                   ? new Date(podcast.createdAt).toLocaleString()

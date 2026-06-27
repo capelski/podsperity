@@ -27,7 +27,7 @@ async function buildDialogue(
   voiceA: string,
   voiceB: string,
   openai: OpenAI,
-): Promise<DialogueInput[]> {
+): Promise<{ title: string; lines: DialogueInput[] }> {
   const pageResponse = await fetch(url);
   if (!pageResponse.ok) {
     throw new Error(
@@ -45,7 +45,11 @@ async function buildDialogue(
       {
         role: "system",
         content:
-          'You extract the key content from web page text and write an engaging podcast dialogue. Return strict JSON with shape {"lines": []}. Each line should be a string of dialogue, alternating between two speakers. Include inline audio tags like [laughs] or [curious] at the beginning of the line to make the delivery feel natural.',
+          'You extract the key content from web page text and write an engaging podcast dialogue. ' +
+          'Return strict JSON with shape {"title": "string", "lines": []}. ' +
+          'The title should be a concise and engaging summary of the podcast topic. ' +
+          'Each line should be a string of dialogue, alternating between two speakers. ' +
+          'Include inline audio tags like [laughs] or [curious] at the beginning of the line to make the delivery feel natural.',
       },
       {
         role: "user",
@@ -59,12 +63,17 @@ async function buildDialogue(
     throw new Error("OpenAI returned no content while building dialogue.");
   }
 
-  const parsed = JSON.parse(content) as { lines?: unknown };
+  const parsed = JSON.parse(content) as { title?: string; lines?: unknown };
   if (!Array.isArray(parsed.lines) || parsed.lines.length === 0) {
     throw new Error("OpenAI response did not include a valid 'lines' array.");
   }
 
-  return parsed.lines
+  const title =
+    typeof parsed.title === "string" && parsed.title.trim().length > 0
+      ? parsed.title.trim()
+      : "Untitled podcast";
+
+  const lines = parsed.lines
     .filter(
       (line): line is string =>
         typeof line === "string" && line.trim().length > 0,
@@ -73,9 +82,11 @@ async function buildDialogue(
       voiceId: index % 2 === 0 ? voiceA : voiceB,
       text,
     }));
+
+  return { title, lines };
 }
 
-async function generate(url: string): Promise<{ audioUrl: string; lines: DialogueInput[] }> {
+async function generate(url: string): Promise<{ audioUrl: string; title: string; lines: DialogueInput[] }> {
   // Two stock ElevenLabs voices available on every account: "George" and "Sarah".
   const voiceA = process.env.ELEVENLABS_VOICE_ID_1 ?? "JBFqnCBsd6RMkjVDRZzb";
   const voiceB = process.env.ELEVENLABS_VOICE_ID_2 ?? "EXAVITQu4vr4xnSDxMaL";
@@ -84,7 +95,7 @@ async function generate(url: string): Promise<{ audioUrl: string; lines: Dialogu
   const openai = new OpenAI({ apiKey: openAiApiKey.value() });
   const client = new ElevenLabsClient({ apiKey: elevenLabsApiKey.value() });
 
-  const inputs = await buildDialogue(url, voiceA, voiceB, openai);
+  const { title, lines: inputs } = await buildDialogue(url, voiceA, voiceB, openai);
 
   const audioStream = await client.textToDialogue.convert({
     inputs,
@@ -110,7 +121,7 @@ async function generate(url: string): Promise<{ audioUrl: string; lines: Dialogu
   await file.save(audio, {
     metadata: {
       contentType: "audio/mpeg",
-      metadata: { firebaseStorageDownloadTokens: token },
+      metadata: { firebaseStorageDownloadTokens: token, title },
     },
   });
 
@@ -124,7 +135,7 @@ async function generate(url: string): Promise<{ audioUrl: string; lines: Dialogu
     objectPath,
   )}?alt=media&token=${token}`;
 
-  return { audioUrl, lines: inputs };
+  return { audioUrl, title, lines: inputs };
 }
 
 export const generatePodcast = onRequest(
