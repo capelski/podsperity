@@ -12,6 +12,10 @@
         "function": "generatePodcast"
       },
       {
+        "source": "/api/listPodcasts",
+        "function": "listPodcasts"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

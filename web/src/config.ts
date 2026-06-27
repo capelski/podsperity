@@ -11,3 +11,7 @@ const REGION = "europe-west3";
 export const GENERATE_PODCAST_URL = import.meta.env.DEV
   ? `http://127.0.0.1:5001/${PROJECT_ID}/${REGION}/generatePodcast`
   : "/api/generatePodcast";
+
+export const LIST_PODCASTS_URL = import.meta.env.DEV
+  ? `http://127.0.0.1:5001/${PROJECT_ID}/${REGION}/listPodcasts`
+  : "/api/listPodcasts";
