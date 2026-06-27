@@ -1,13 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Generate from "./Generate";
 import Library, { INITIAL_LIBRARY_STATE, type LibraryState } from "./Library";
+import Preferences from "./Preferences";
 
-type Tab = "generate" | "library";
+type Tab = "generate" | "library" | "preferences";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "generate", label: "Generate" },
   { id: "library", label: "Library" },
+  { id: "preferences", label: "Preferences" },
 ];
+
+const TOPICS_STORAGE_KEY = "podsperity.topics";
+
+function loadTopics(): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(TOPICS_STORAGE_KEY) ?? "null");
+    return Array.isArray(parsed) ? (parsed as string[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("generate");
@@ -15,6 +28,12 @@ export default function App() {
   // switches instead of being re-fetched every time the tab is opened.
   const [libraryState, setLibraryState] =
     useState<LibraryState>(INITIAL_LIBRARY_STATE);
+  // Topic preferences persist across tab switches and reloads (localStorage).
+  const [topics, setTopics] = useState<string[]>(loadTopics);
+
+  useEffect(() => {
+    localStorage.setItem(TOPICS_STORAGE_KEY, JSON.stringify(topics));
+  }, [topics]);
 
   return (
     <main
@@ -62,10 +81,12 @@ export default function App() {
         })}
       </nav>
 
-      {tab === "generate" ? (
-        <Generate />
-      ) : (
+      {tab === "generate" && <Generate />}
+      {tab === "library" && (
         <Library state={libraryState} setState={setLibraryState} />
+      )}
+      {tab === "preferences" && (
+        <Preferences selected={topics} setSelected={setTopics} />
       )}
     </main>
   );
