@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "./firebase";
+import { useAuth, signInWithGoogle, signOutUser } from "./auth";
 import Generate from "./Generate";
 import Library, { INITIAL_LIBRARY_STATE, type LibraryState } from "./Library";
 import Preferences from "./Preferences";
@@ -11,29 +14,48 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "preferences", label: "Preferences" },
 ];
 
-const TOPICS_STORAGE_KEY = "podsperity.topics";
-
-function loadTopics(): string[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(TOPICS_STORAGE_KEY) ?? "null");
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function App() {
+  const { user, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<Tab>("generate");
   // The Library's fetched podcasts live here so they persist across tab
   // switches instead of being re-fetched every time the tab is opened.
   const [libraryState, setLibraryState] =
     useState<LibraryState>(INITIAL_LIBRARY_STATE);
-  // Topic preferences persist across tab switches and reloads (localStorage).
-  const [topics, setTopics] = useState<string[]>(loadTopics);
+  // Topic preferences are stored per-user in Firestore (users/{uid}.topics).
+  const [topics, setTopics] = useState<string[]>([]);
+  const [savingTopics, setSavingTopics] = useState(false);
 
+  // Load the signed-in user's saved topics; clear them on sign-out.
   useEffect(() => {
-    localStorage.setItem(TOPICS_STORAGE_KEY, JSON.stringify(topics));
-  }, [topics]);
+    if (!user) {
+      setTopics([]);
+      return;
+    }
+    let cancelled = false;
+    getDoc(doc(db, "users", user.uid))
+      .then((snapshot) => {
+        if (cancelled) return;
+        const data = snapshot.data();
+        setTopics(Array.isArray(data?.topics) ? (data!.topics as string[]) : []);
+      })
+      .catch((err) => console.error("Failed to load preferences:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  async function handleTopicsChange(next: string[]) {
+    setTopics(next);
+    if (!user) return;
+    setSavingTopics(true);
+    try {
+      await setDoc(doc(db, "users", user.uid), { topics: next }, { merge: true });
+    } catch (err) {
+      console.error("Failed to save preferences:", err);
+    } finally {
+      setSavingTopics(false);
+    }
+  }
 
   return (
     <main
@@ -45,14 +67,38 @@ export default function App() {
         lineHeight: 1.5,
       }}
     >
-      <h1>Podsperity</h1>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
+        }}
+      >
+        <h1 style={{ margin: 0 }}>Podsperity</h1>
+        {!authLoading &&
+          (user ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: "0.85rem", color: "#555" }}>
+                {user.displayName ?? user.email}
+              </span>
+              <button type="button" onClick={() => void signOutUser()}>
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <button type="button" onClick={() => void signInWithGoogle()}>
+              Sign in with Google
+            </button>
+          ))}
+      </header>
 
       <nav
         style={{
           display: "flex",
           gap: 4,
           borderBottom: "1px solid #ddd",
-          marginBottom: "1.5rem",
+          margin: "1.5rem 0",
         }}
       >
         {TABS.map(({ id, label }) => {
@@ -85,9 +131,16 @@ export default function App() {
       {tab === "library" && (
         <Library state={libraryState} setState={setLibraryState} />
       )}
-      {tab === "preferences" && (
-        <Preferences selected={topics} setSelected={setTopics} />
-      )}
+      {tab === "preferences" &&
+        (user ? (
+          <Preferences
+            selected={topics}
+            onChange={handleTopicsChange}
+            saving={savingTopics}
+          />
+        ) : (
+          <p>Sign in with Google to choose and save your topics.</p>
+        ))}
     </main>
   );
 }

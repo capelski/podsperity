@@ -1,5 +1,3 @@
-import { type Dispatch, type SetStateAction } from "react";
-
 // The topics a user can express interest in.
 export const TOPICS = [
   "Technology",
@@ -21,15 +19,16 @@ export const TOPICS = [
 
 type Props = {
   selected: string[];
-  setSelected: Dispatch<SetStateAction<string[]>>;
+  onChange: (next: string[]) => void;
+  saving?: boolean;
 };
 
-export default function Preferences({ selected, setSelected }: Props) {
+export default function Preferences({ selected, onChange, saving }: Props) {
   function toggle(topic: string) {
-    setSelected((prev) =>
-      prev.includes(topic)
-        ? prev.filter((t) => t !== topic)
-        : [...prev, topic],
+    onChange(
+      selected.includes(topic)
+        ? selected.filter((t) => t !== topic)
+        : [...selected, topic],
     );
   }
 
@@ -63,9 +62,11 @@ export default function Preferences({ selected, setSelected }: Props) {
       </div>
 
       <p style={{ marginTop: "1.5rem", fontSize: "0.85rem", color: "#555" }}>
-        {selected.length === 0
-          ? "No topics selected yet."
-          : `${selected.length} topic${selected.length === 1 ? "" : "s"} selected.`}
+        {saving
+          ? "Saving…"
+          : selected.length === 0
+            ? "No topics selected yet."
+            : `${selected.length} topic${selected.length === 1 ? "" : "s"} selected.`}
       </p>
     </>
   );
