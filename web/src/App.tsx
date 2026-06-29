@@ -44,6 +44,15 @@ export default function App() {
     };
   }, [user]);
 
+  // The Preferences tab requires sign-in; leave it if the user signs out.
+  useEffect(() => {
+    if (!user && tab === "preferences") {
+      setTab("library");
+    }
+  }, [user, tab]);
+
+  const visibleTabs = TABS.filter(({ id }) => id !== "preferences" || user);
+
   async function handleTopicsChange(next: string[]) {
     setTopics(next);
     if (!user) return;
@@ -101,7 +110,7 @@ export default function App() {
           margin: "1.5rem 0",
         }}
       >
-        {TABS.map(({ id, label }) => {
+        {visibleTabs.map(({ id, label }) => {
           const active = tab === id;
           return (
             <button
@@ -131,16 +140,13 @@ export default function App() {
       {tab === "library" && (
         <Library state={libraryState} setState={setLibraryState} />
       )}
-      {tab === "preferences" &&
-        (user ? (
-          <Preferences
-            selected={topics}
-            onChange={handleTopicsChange}
-            saving={savingTopics}
-          />
-        ) : (
-          <p>Sign in with Google to choose and save your topics.</p>
-        ))}
+      {tab === "preferences" && user && (
+        <Preferences
+          selected={topics}
+          onChange={handleTopicsChange}
+          saving={savingTopics}
+        />
+      )}
     </main>
   );
 }
