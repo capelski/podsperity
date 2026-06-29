@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { GENERATE_PODCAST_URL } from "./config";
+import { FIND_ARTICLE_URL, GENERATE_PODCAST_URL } from "./config";
+import { useAuth } from "./auth";
+import { auth } from "./firebase";
 
 type GenerateResponse = {
   audioUrl: string;
@@ -9,10 +11,46 @@ type GenerateResponse = {
 };
 
 export default function Generate() {
+  const { user } = useAuth();
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerateResponse | null>(null);
+
+  // Ask the backend for a news article URL matching the user's saved topics
+  // and drop it into the input, ready to generate.
+  async function handleSuggest() {
+    setError(null);
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setError("Sign in to use your saved topics.");
+      return;
+    }
+    setSuggesting(true);
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(FIND_ARTICLE_URL, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await response.json()) as {
+        url?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? `Request failed (${response.status}).`);
+      }
+      if (!data.url) {
+        throw new Error("No article URL was returned.");
+      }
+      setUrl(data.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSuggesting(false);
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -64,6 +102,18 @@ export default function Generate() {
           {loading ? "Generating…" : "Generate"}
         </button>
       </form>
+
+      {user && (
+        <p style={{ marginTop: "0.5rem" }}>
+          <button
+            type="button"
+            onClick={() => void handleSuggest()}
+            disabled={loading || suggesting}
+          >
+            {suggesting ? "Finding an article…" : "Suggest from my topics"}
+          </button>
+        </p>
+      )}
 
       {loading && (
         <p style={{ marginTop: "1rem" }}>

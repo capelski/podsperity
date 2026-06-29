@@ -16,6 +16,10 @@
         "function": "listPodcasts"
       },
       {
+        "source": "/api/findArticle",
+        "function": "findArticle"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

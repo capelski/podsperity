@@ -15,3 +15,7 @@ export const GENERATE_PODCAST_URL = import.meta.env.DEV
 export const LIST_PODCASTS_URL = import.meta.env.DEV
   ? `http://127.0.0.1:5001/${PROJECT_ID}/${REGION}/listPodcasts`
   : "/api/listPodcasts";
+
+export const FIND_ARTICLE_URL = import.meta.env.DEV
+  ? `http://127.0.0.1:5001/${PROJECT_ID}/${REGION}/findArticle`
+  : "/api/findArticle";
