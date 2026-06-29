@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { findArticleUrl, generatePodcast, type GenerateResponse } from "./api";
+import PodcastResult from "./PodcastResult";
+
 // The topics a user can express interest in.
 export const TOPICS = [
   "Technology",
@@ -24,12 +28,34 @@ type Props = {
 };
 
 export default function Preferences({ selected, onChange, saving }: Props) {
+  // Status of the one-click "generate from my topics" flow.
+  const [status, setStatus] = useState<null | "finding" | "generating">(null);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<GenerateResponse | null>(null);
+
   function toggle(topic: string) {
     onChange(
       selected.includes(topic)
         ? selected.filter((t) => t !== topic)
         : [...selected, topic],
     );
+  }
+
+  // Find an article matching the saved topics and generate a podcast from it,
+  // all in one step — no need to visit the Generate tab.
+  async function handleGenerate() {
+    setError(null);
+    setResult(null);
+    try {
+      setStatus("finding");
+      const url = await findArticleUrl();
+      setStatus("generating");
+      setResult(await generatePodcast(url));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStatus(null);
+    }
   }
 
   return (
@@ -68,6 +94,30 @@ export default function Preferences({ selected, onChange, saving }: Props) {
             ? "No topics selected yet."
             : `${selected.length} topic${selected.length === 1 ? "" : "s"} selected.`}
       </p>
+
+      <button
+        type="button"
+        onClick={() => void handleGenerate()}
+        disabled={selected.length === 0 || status !== null}
+      >
+        {status === "finding"
+          ? "Finding an article…"
+          : status === "generating"
+            ? "Generating…"
+            : "Generate a podcast from my topics"}
+      </button>
+
+      {status === "generating" && (
+        <p style={{ marginTop: "1rem" }}>
+          Generating your podcast — this can take a minute…
+        </p>
+      )}
+
+      {error && (
+        <p style={{ marginTop: "1rem", color: "crimson" }}>Error: {error}</p>
+      )}
+
+      {result && <PodcastResult result={result} />}
     </>
   );
 }

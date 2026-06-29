@@ -1,14 +1,7 @@
 import { useState, type FormEvent } from "react";
-import { FIND_ARTICLE_URL, GENERATE_PODCAST_URL } from "./config";
 import { useAuth } from "./auth";
-import { auth } from "./firebase";
-
-type GenerateResponse = {
-  audioUrl: string;
-  title: string;
-  source: string;
-  lines: { voiceId: string; text: string }[];
-};
+import { findArticleUrl, generatePodcast, type GenerateResponse } from "./api";
+import PodcastResult from "./PodcastResult";
 
 export default function Generate() {
   const { user } = useAuth();
@@ -22,29 +15,9 @@ export default function Generate() {
   // and drop it into the input, ready to generate.
   async function handleSuggest() {
     setError(null);
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      setError("Sign in to use your saved topics.");
-      return;
-    }
     setSuggesting(true);
     try {
-      const token = await currentUser.getIdToken();
-      const response = await fetch(FIND_ARTICLE_URL, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = (await response.json()) as {
-        url?: string;
-        error?: string;
-      };
-      if (!response.ok) {
-        throw new Error(data.error ?? `Request failed (${response.status}).`);
-      }
-      if (!data.url) {
-        throw new Error("No article URL was returned.");
-      }
-      setUrl(data.url);
+      setUrl(await findArticleUrl());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -57,26 +30,8 @@ export default function Generate() {
     setError(null);
     setResult(null);
     setLoading(true);
-
     try {
-      const response = await fetch(GENERATE_PODCAST_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-
-      const data = (await response.json()) as Partial<GenerateResponse> & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(data.error ?? `Request failed (${response.status}).`);
-      }
-      if (!data.audioUrl) {
-        throw new Error("Response did not include an audio URL.");
-      }
-
-      setResult(data as GenerateResponse);
+      setResult(await generatePodcast(url));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -125,33 +80,7 @@ export default function Generate() {
         <p style={{ marginTop: "1rem", color: "crimson" }}>Error: {error}</p>
       )}
 
-      {result && (
-        <section style={{ marginTop: "1.5rem" }}>
-          <h2>{result.title || "Your podcast"}</h2>
-          {result.source && (
-            <p style={{ fontSize: "0.85rem", color: "#555", margin: 0 }}>
-              Source:{" "}
-              <a href={result.source} target="_blank" rel="noreferrer">
-                {result.source}
-              </a>
-            </p>
-          )}
-          <audio controls src={result.audioUrl} style={{ width: "100%" }} />
-          <p>
-            <a href={result.audioUrl} download>
-              Download mp3
-            </a>
-          </p>
-          <details>
-            <summary>Transcript ({result.lines.length} lines)</summary>
-            <ol>
-              {result.lines.map((line, i) => (
-                <li key={i}>{line.text}</li>
-              ))}
-            </ol>
-          </details>
-        </section>
-      )}
+      {result && <PodcastResult result={result} />}
     </>
   );
 }
