@@ -9,7 +9,7 @@ import Preferences from "./Preferences";
 type Tab = "generate" | "library" | "preferences";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "generate", label: "Generate" },
+  { id: "generate", label: "URL to Podcast" },
   { id: "library", label: "Library" },
   { id: "preferences", label: "Preferences" },
 ];
