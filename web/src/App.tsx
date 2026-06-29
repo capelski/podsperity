@@ -6,17 +6,17 @@ import Generate from "./Generate";
 import Library, { INITIAL_LIBRARY_STATE, type LibraryState } from "./Library";
 import Preferences from "./Preferences";
 
-type Tab = "generate" | "library" | "preferences";
+type Tab = "url-to-podcast" | "library" | "preferences";
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: "generate", label: "URL to Podcast" },
   { id: "library", label: "Library" },
   { id: "preferences", label: "Preferences" },
+  { id: "url-to-podcast", label: "URL to Podcast" },
 ];
 
 export default function App() {
   const { user, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<Tab>("generate");
+  const [tab, setTab] = useState<Tab>("library");
   // The Library's fetched podcasts live here so they persist across tab
   // switches instead of being re-fetched every time the tab is opened.
   const [libraryState, setLibraryState] =
@@ -127,7 +127,7 @@ export default function App() {
         })}
       </nav>
 
-      {tab === "generate" && <Generate />}
+      {tab === "url-to-podcast" && <Generate />}
       {tab === "library" && (
         <Library state={libraryState} setState={setLibraryState} />
       )}
