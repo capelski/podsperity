@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { defineSecret } from "firebase-functions/params";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import OpenAI from "openai";
 import { cors } from "./shared";
 
@@ -15,6 +16,23 @@ async function getUserTopics(uid: string): Promise<string[]> {
         (t): t is string => typeof t === "string" && t.trim().length > 0,
       )
     : [];
+}
+
+// Source URLs of every podcast already generated. Each podcast's audio.mp3
+// carries the article URL it was made from in its `source` custom metadata
+// (set by generatePodcast); the object listing already includes that metadata,
+// so no per-file fetch is needed.
+async function getUsedSourceUrls(): Promise<Set<string>> {
+  const [files] = await getStorage().bucket().getFiles({ prefix: "podcasts/" });
+  const used = new Set<string>();
+  for (const file of files) {
+    if (!file.name.endsWith("/audio.mp3")) continue;
+    const source = file.metadata?.metadata?.source;
+    if (typeof source === "string" && source.length > 0) {
+      used.add(source);
+    }
+  }
+  return used;
 }
 
 // The shape we care about from the Responses API result. The web search tool
@@ -47,22 +65,35 @@ function extractUrl(response: ResponseShape): string | undefined {
 
 async function searchArticleUrl(
   topics: string[],
+  used: Set<string>,
   openai: OpenAI,
 ): Promise<string> {
-  const response = await openai.responses.create({
-    model: process.env.OPENAI_MODEL_ID ?? "gpt-5.4-mini",
-    tools: [{ type: "web_search_preview" }],
-    input:
-      "Find one recent news article related to any of these topics: " +
-      `${topics.join(", ")}. ` +
-      "Pick a publicly readable article from a reputable news site and reply with only its URL.",
-  });
+  const exclusions =
+    used.size > 0
+      ? "\n\nDo not choose any of these already-used URLs:\n" +
+        [...used].join("\n")
+      : "";
 
-  const url = extractUrl(response as ResponseShape);
-  if (!url) {
-    throw new Error("Could not find a news article for your topics.");
+  // The model usually honours the exclusion list, but ask a few times in case
+  // it returns one we've already used.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await openai.responses.create({
+      model: process.env.OPENAI_MODEL_ID ?? "gpt-5.4-mini",
+      tools: [{ type: "web_search_preview" }],
+      input:
+        "Find one recent news article related to any of these topics: " +
+        `${topics.join(", ")}. ` +
+        "Pick a publicly readable article from a reputable news site and reply with only its URL." +
+        exclusions,
+    });
+
+    const url = extractUrl(response as ResponseShape);
+    if (url && !used.has(url)) {
+      return url;
+    }
   }
-  return url;
+
+  throw new Error("Could not find a new news article for your topics.");
 }
 
 export const findArticle = onRequest(
@@ -91,7 +122,8 @@ export const findArticle = onRequest(
         }
 
         const openai = new OpenAI({ apiKey: openAiApiKey.value() });
-        const url = await searchArticleUrl(topics, openai);
+        const used = await getUsedSourceUrls();
+        const url = await searchArticleUrl(topics, used, openai);
         res.status(200).json({ url, topics });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
