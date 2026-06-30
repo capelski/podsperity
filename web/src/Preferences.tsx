@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { findArticleUrl, generatePodcast, type GenerateResponse } from "./api";
 import PodcastResult from "./PodcastResult";
+import { track } from "./analytics";
 
 // The topics a user can express interest in.
 export const TOPICS = [
@@ -34,8 +35,10 @@ export default function Preferences({ selected, onChange, saving }: Props) {
   const [result, setResult] = useState<GenerateResponse | null>(null);
 
   function toggle(topic: string) {
+    const wasSelected = selected.includes(topic);
+    track("select_topic", { topic, selected: !wasSelected });
     onChange(
-      selected.includes(topic)
+      wasSelected
         ? selected.filter((t) => t !== topic)
         : [...selected, topic],
     );
@@ -50,7 +53,7 @@ export default function Preferences({ selected, onChange, saving }: Props) {
       setStatus("finding");
       const url = await findArticleUrl();
       setStatus("generating");
-      setResult(await generatePodcast(url));
+      setResult(await generatePodcast(url, "topics"));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

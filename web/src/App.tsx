@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { useAuth, signInWithGoogle, signOutUser } from "./auth";
+import { identify, track } from "./analytics";
 import Generate from "./Generate";
 import Library, { INITIAL_LIBRARY_STATE, type LibraryState } from "./Library";
 import Preferences from "./Preferences";
@@ -24,6 +25,11 @@ export default function App() {
   // Topic preferences are stored per-user in Firestore (users/{uid}.topics).
   const [topics, setTopics] = useState<string[]>([]);
   const [savingTopics, setSavingTopics] = useState(false);
+
+  // Tie analytics events to the signed-in user (cleared on sign-out).
+  useEffect(() => {
+    identify(user?.uid ?? null);
+  }, [user]);
 
   // Load the signed-in user's saved topics; clear them on sign-out.
   useEffect(() => {
@@ -52,6 +58,13 @@ export default function App() {
   }, [user, tab]);
 
   const visibleTabs = TABS.filter(({ id }) => id !== "preferences" || user);
+
+  function selectTab(next: Tab) {
+    if (next !== tab) {
+      track("select_tab", { tab: next });
+    }
+    setTab(next);
+  }
 
   async function handleTopicsChange(next: string[]) {
     setTopics(next);
@@ -112,7 +125,10 @@ export default function App() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => void signOutUser()}
+                onClick={() => {
+                  track("logout");
+                  void signOutUser();
+                }}
               >
                 Sign out
               </button>
@@ -121,7 +137,11 @@ export default function App() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => void signInWithGoogle()}
+              onClick={() =>
+                void signInWithGoogle().then(() =>
+                  track("login", { method: "google" }),
+                )
+              }
             >
               Sign in with Google
             </button>
@@ -135,7 +155,7 @@ export default function App() {
             type="button"
             className="tab"
             data-active={tab === id}
-            onClick={() => setTab(id)}
+            onClick={() => selectTab(id)}
           >
             {label}
           </button>

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LIST_PODCASTS_URL } from "./config";
+import { track } from "./analytics";
 
 export type PodcastSummary = {
   id: string;
@@ -44,6 +45,19 @@ export default function Library({ state, setState }: Props) {
   // Transient UI state stays local to the tab; the data lives in App.
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Podcasts we've already counted a play for, so resuming after a pause
+  // doesn't fire a second `play_podcast` event.
+  const playedIds = useRef<Set<string>>(new Set());
+
+  function handlePlay(podcast: PodcastSummary) {
+    if (playedIds.current.has(podcast.id)) return;
+    playedIds.current.add(podcast.id);
+    track("play_podcast", {
+      location: "library",
+      podcast_id: podcast.id,
+      title: podcast.title,
+    });
+  }
 
   const fetchPage = useCallback(async (pageToken?: string) => {
     const params = new URLSearchParams({ pageSize: String(PAGE_SIZE) });
@@ -219,6 +233,7 @@ export default function Library({ state, setState }: Props) {
               <audio
                 controls
                 src={podcast.audioUrl}
+                onPlay={() => handlePlay(podcast)}
                 style={{ width: "100%", marginTop: "0.6rem" }}
               />
             </li>
