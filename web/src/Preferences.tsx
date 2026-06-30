@@ -60,34 +60,31 @@ export default function Preferences({ selected, onChange, saving }: Props) {
 
   return (
     <>
-      <p>Pick the topics you're interested in.</p>
+      <h2>Preferences</h2>
+      <p style={{ marginTop: 0 }}>Pick the topics you're interested in.</p>
 
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {TOPICS.map((topic) => {
-          const active = selected.includes(topic);
-          return (
-            <button
-              key={topic}
-              type="button"
-              onClick={() => toggle(topic)}
-              aria-pressed={active}
-              style={{
-                padding: "0.4rem 0.9rem",
-                borderRadius: 999,
-                border: `1px solid ${active ? "#333" : "#ccc"}`,
-                background: active ? "#333" : "transparent",
-                color: active ? "#fff" : "#333",
-                cursor: "pointer",
-                fontSize: "0.9rem",
-              }}
-            >
-              {topic}
-            </button>
-          );
-        })}
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 8,
+          marginTop: "1.25rem",
+        }}
+      >
+        {TOPICS.map((topic) => (
+          <button
+            key={topic}
+            type="button"
+            className="pill"
+            onClick={() => toggle(topic)}
+            aria-pressed={selected.includes(topic)}
+          >
+            {topic}
+          </button>
+        ))}
       </div>
 
-      <p style={{ marginTop: "1.5rem", fontSize: "0.85rem", color: "#555" }}>
+      <p className="muted" style={{ marginTop: "1.5rem", fontSize: "0.85rem" }}>
         {saving
           ? "Saving…"
           : selected.length === 0
@@ -97,6 +94,7 @@ export default function Preferences({ selected, onChange, saving }: Props) {
 
       <button
         type="button"
+        className="btn btn-primary"
         onClick={() => void handleGenerate()}
         disabled={selected.length === 0 || status !== null}
       >
@@ -108,13 +106,15 @@ export default function Preferences({ selected, onChange, saving }: Props) {
       </button>
 
       {status === "generating" && (
-        <p style={{ marginTop: "1rem" }}>
+        <p className="muted" style={{ marginTop: "1rem" }}>
           Generating your podcast — this can take a minute…
         </p>
       )}
 
       {error && (
-        <p style={{ marginTop: "1rem", color: "crimson" }}>Error: {error}</p>
+        <p className="error" style={{ marginTop: "1rem" }}>
+          Error: {error}
+        </p>
       )}
 
       {result && <PodcastResult result={result} />}

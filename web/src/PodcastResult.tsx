@@ -4,25 +4,42 @@ import type { GenerateResponse } from "./api";
 // Preferences tabs).
 export default function PodcastResult({ result }: { result: GenerateResponse }) {
   return (
-    <section style={{ marginTop: "1.5rem" }}>
+    <section
+      style={{
+        marginTop: "1.75rem",
+        paddingTop: "1.5rem",
+        borderTop: "1px solid var(--line)",
+      }}
+    >
       <h2>{result.title || "Your podcast"}</h2>
       {result.source && (
-        <p style={{ fontSize: "0.85rem", color: "#555", margin: 0 }}>
+        <p className="muted" style={{ fontSize: "0.85rem", margin: 0 }}>
           Source:{" "}
           <a href={result.source} target="_blank" rel="noreferrer">
             {result.source}
           </a>
         </p>
       )}
-      <audio controls src={result.audioUrl} style={{ width: "100%" }} />
-      <p>
-        <a href={result.audioUrl} download>
-          Download mp3
+      <audio
+        controls
+        src={result.audioUrl}
+        style={{ width: "100%", marginTop: "0.75rem" }}
+      />
+      <p style={{ marginTop: "0.75rem" }}>
+        <a
+          href={result.audioUrl}
+          download
+          className="btn btn-ghost"
+          style={{ textDecoration: "none" }}
+        >
+          ↓ Download mp3
         </a>
       </p>
-      <details>
-        <summary>Transcript ({result.lines.length} lines)</summary>
-        <ol>
+      <details style={{ marginTop: "0.5rem" }}>
+        <summary style={{ cursor: "pointer", color: "var(--ink-soft)" }}>
+          Transcript ({result.lines.length} lines)
+        </summary>
+        <ol style={{ color: "var(--ink-soft)", lineHeight: 1.7 }}>
           {result.lines.map((line, i) => (
             <li key={i}>{line.text}</li>
           ))}

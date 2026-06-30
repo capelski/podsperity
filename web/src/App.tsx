@@ -69,11 +69,9 @@ export default function App() {
   return (
     <main
       style={{
-        maxWidth: 640,
+        maxWidth: 680,
         margin: "0 auto",
-        padding: "2rem 1rem",
-        fontFamily: "system-ui, sans-serif",
-        lineHeight: 1.5,
+        padding: "2.5rem 1.25rem 4rem",
       }}
     >
       <header
@@ -81,72 +79,82 @@ export default function App() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 8,
+          gap: 12,
+          marginBottom: "2rem",
         }}
       >
-        <h1 style={{ margin: 0 }}>Podsperity</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span
+            aria-hidden
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 38,
+              height: 38,
+              borderRadius: 12,
+              background: "var(--accent)",
+              fontSize: "1.15rem",
+            }}
+          >
+            🎙
+          </span>
+          <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 800 }}>
+            Podsperity
+          </h1>
+        </div>
         {!authLoading &&
           (user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: "0.85rem", color: "#555" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="muted" style={{ fontSize: "0.85rem" }}>
                 {user.displayName ?? user.email}
               </span>
-              <button type="button" onClick={() => void signOutUser()}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => void signOutUser()}
+              >
                 Sign out
               </button>
             </div>
           ) : (
-            <button type="button" onClick={() => void signInWithGoogle()}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void signInWithGoogle()}
+            >
               Sign in with Google
             </button>
           ))}
       </header>
 
-      <nav
-        style={{
-          display: "flex",
-          gap: 4,
-          borderBottom: "1px solid #ddd",
-          margin: "1.5rem 0",
-        }}
-      >
-        {visibleTabs.map(({ id, label }) => {
-          const active = tab === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTab(id)}
-              style={{
-                padding: "0.5rem 1rem",
-                border: "none",
-                borderBottom: active
-                  ? "2px solid #333"
-                  : "2px solid transparent",
-                background: "none",
-                cursor: "pointer",
-                fontSize: "1rem",
-                fontWeight: active ? 600 : 400,
-                color: active ? "#111" : "#666",
-              }}
-            >
-              {label}
-            </button>
-          );
-        })}
+      <nav style={{ display: "flex", gap: 6, marginBottom: "1.75rem" }}>
+        {visibleTabs.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            className="tab"
+            data-active={tab === id}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
       </nav>
 
-      {tab === "url-to-podcast" && <Generate />}
-      {tab === "library" && (
-        <Library state={libraryState} setState={setLibraryState} />
-      )}
-      {tab === "preferences" && user && (
-        <Preferences
-          selected={topics}
-          onChange={handleTopicsChange}
-          saving={savingTopics}
-        />
-      )}
+      <section className="card" style={{ padding: "1.75rem" }}>
+        {tab === "url-to-podcast" && <Generate />}
+        {tab === "library" && (
+          <Library state={libraryState} setState={setLibraryState} />
+        )}
+        {tab === "preferences" && user && (
+          <Preferences
+            selected={topics}
+            onChange={handleTopicsChange}
+            saving={savingTopics}
+          />
+        )}
+      </section>
     </main>
   );
 }

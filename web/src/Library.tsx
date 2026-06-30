@@ -138,14 +138,20 @@ export default function Library({ state, setState }: Props) {
       <div
         style={{
           display: "flex",
-          alignItems: "baseline",
+          alignItems: "center",
           justifyContent: "space-between",
           gap: 8,
         }}
       >
-        <p style={{ margin: 0 }}>Podcasts you've already generated.</p>
+        <div>
+          <h2 style={{ marginBottom: "0.15rem" }}>Library</h2>
+          <p className="muted" style={{ margin: 0, fontSize: "0.9rem" }}>
+            Podcasts you've already generated.
+          </p>
+        </div>
         <button
           type="button"
+          className="btn btn-ghost"
           onClick={() => void loadFirstPage()}
           disabled={loading}
         >
@@ -154,27 +160,44 @@ export default function Library({ state, setState }: Props) {
       </div>
 
       {error && (
-        <p style={{ marginTop: "1rem", color: "crimson" }}>Error: {error}</p>
+        <p className="error" style={{ marginTop: "1rem" }}>
+          Error: {error}
+        </p>
       )}
 
       {loading && podcasts.length === 0 ? (
-        <p style={{ marginTop: "1rem" }}>Loading podcasts…</p>
+        <p className="muted" style={{ marginTop: "1rem" }}>
+          Loading podcasts…
+        </p>
       ) : podcasts.length === 0 ? (
-        <p style={{ marginTop: "1rem" }}>No podcasts yet.</p>
+        <p className="muted" style={{ marginTop: "1rem" }}>
+          No podcasts yet.
+        </p>
       ) : (
-        <ul style={{ listStyle: "none", padding: 0, marginTop: "1rem" }}>
+        <ul
+          style={{
+            listStyle: "none",
+            padding: 0,
+            marginTop: "1.25rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
           {podcasts.map((podcast) => (
             <li
               key={podcast.id}
               style={{
-                padding: "0.75rem 0",
-                borderTop: "1px solid #ddd",
+                padding: "1rem 1.1rem",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--radius)",
+                background: "var(--surface-muted)",
               }}
             >
-              <div style={{ fontWeight: 600 }}>
+              <div style={{ fontWeight: 600, fontSize: "1.02rem" }}>
                 {podcast.title || "Untitled podcast"}
               </div>
-              <div style={{ fontSize: "0.85rem", color: "#555" }}>
+              <div className="muted" style={{ fontSize: "0.82rem" }}>
                 {podcast.createdAt
                   ? new Date(podcast.createdAt).toLocaleString()
                   : podcast.id}
@@ -182,7 +205,7 @@ export default function Library({ state, setState }: Props) {
               {podcast.source && (
                 <div
                   style={{
-                    fontSize: "0.85rem",
+                    fontSize: "0.82rem",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -196,7 +219,7 @@ export default function Library({ state, setState }: Props) {
               <audio
                 controls
                 src={podcast.audioUrl}
-                style={{ width: "100%", marginTop: "0.25rem" }}
+                style={{ width: "100%", marginTop: "0.6rem" }}
               />
             </li>
           ))}
@@ -208,21 +231,23 @@ export default function Library({ state, setState }: Props) {
           display: "flex",
           alignItems: "center",
           gap: 12,
-          marginTop: "1rem",
+          marginTop: "1.5rem",
         }}
       >
         <button
           type="button"
+          className="btn btn-ghost"
           onClick={() => void goToPrevPage()}
           disabled={loading || pageNumber <= 1}
         >
           ← Previous
         </button>
-        <span style={{ fontSize: "0.9rem", color: "#555" }}>
+        <span className="muted" style={{ fontSize: "0.9rem" }}>
           Page {pageNumber}
         </span>
         <button
           type="button"
+          className="btn btn-ghost"
           onClick={() => void goToNextPage()}
           disabled={loading || !nextPageToken}
         >
