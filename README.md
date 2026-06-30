@@ -17,7 +17,7 @@ This is a Firebase app:
 - A Firebase project on the **Blaze (pay-as-you-go) plan** — Cloud Functions
   need it to make outbound calls to OpenAI and ElevenLabs. Enable **Storage** in
   the Firebase console.
-- Set your project id in [`.firebaserc`](.firebaserc) (replace `podsperity`).
+- Set your project id in [`.firebaserc`](.firebaserc) (replace `podsperity-a5b49`).
 - OpenAI and ElevenLabs API keys.
 
 ## Install
@@ -57,12 +57,4 @@ npm --prefix web run build
 firebase deploy
 ```
 
-In production the frontend calls the function through a Hosting rewrite at
-`/api/generatePodcast`, so requests stay same-origin.
-
-## Optional env vars (functions)
-
-- `ELEVENLABS_VOICE_ID_1` / `ELEVENLABS_VOICE_ID_2` — override the two speaker
-  voices (default to the stock "George" and "Sarah" voices).
-- `ELEVENLABS_MODEL_ID` — override the ElevenLabs model (defaults to `eleven_v3`).
-- `OPENAI_MODEL_ID` — override the OpenAI model (defaults to `gpt-4.1-mini`).
+In production the frontend calls functions through a Hosting rewrite at, so requests stay same-origin.
