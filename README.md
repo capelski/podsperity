@@ -57,4 +57,6 @@ npm --prefix web run build
 firebase deploy
 ```
 
-In production the frontend calls functions through a Hosting rewrite at, so requests stay same-origin.
+In production the frontend calls the functions through Hosting rewrites at
+`/api/*` (see [`firebase.json`](firebase.json)), so requests stay same-origin
+and avoid CORS.
