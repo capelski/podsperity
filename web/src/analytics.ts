@@ -32,7 +32,14 @@ const ready: Promise<void> = isSupported()
 export function track(eventName: string, params?: EventParams) {
   void ready.then(() => {
     if (analytics) {
-      logEvent(analytics, eventName, params);
+      // In dev, tag events with debug_mode so they appear live in GA4's
+      // DebugView. (Standard reports still lag 24–48h; use DebugView/Realtime
+      // to confirm tracking immediately.)
+      logEvent(
+        analytics,
+        eventName,
+        import.meta.env.DEV ? { ...params, debug_mode: true } : params,
+      );
     }
   });
 }
